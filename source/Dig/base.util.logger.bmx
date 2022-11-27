@@ -38,7 +38,6 @@ SuperStrict
 Import BRL.LinkedList
 Import BRL.Retro		'for lset()
 Import BRL.System		'for currenttime()
-Import Brl.IO			'MaxIO
 ?android
 'needed to be able to retrieve android's internal storage path
 Import Sdl.sdl
@@ -47,6 +46,7 @@ Import Sdl.sdl
 Import Brl.Threads
 ?
 Import "base.util.string.bmx"
+Import "base.util.filehelper.bmx"
 
 'create a basic log file
 'but ensure directory exists
@@ -271,7 +271,7 @@ Type TLogFile
 			'in all cases, just dump down the file again regardless
 			'of the mode (you might have manipulated logs meanwhile)
 			'try to create the file
-			EnsureWriteableFolderExists(LOG_DIRECTORY)
+			TFileHelper.EnsureWriteableDirectoryExists(LOG_DIRECTORY)
 			Local file:TStream = WriteFile( logfile.filename )
 			If Not file 
 				?threaded
@@ -295,25 +295,6 @@ Type TLogFile
 	End Function
 	
 	
-	Function EnsureWriteableFolderExists(path:String)
-		Local folderExists:int = FileType(path) = FILETYPE_DIR
-		'folder might exist in read-only "app dir" already compared
-		'to write-dir. If "writeDir" is earlier in the search path it
-		'would return the write directory as real directory in case of
-		'the path's existence.
-		If MaxIO.ioInitialized 
-			Local writeDir:String = MaxIO.GetWriteDir()
-			if MaxIO.GetRealDir(path).Find(writeDir) <> 0
-				folderExists = False
-			EndIf
-		EndIf
-
-		If not folderExists and not CreateDir(path) 
-			Throw "Log: Cannot create log directory: ~q" + LOG_DEBUG + "~q."
-		EndIf
-	End Function
-
-
 	Method AddLog:Int(text:String, addDateTime:Int=False)
 		If addDateTime Then text = "[" + CurrentTime() + "] " + text
 		Strings.AddLast(text)
@@ -325,7 +306,7 @@ Type TLogFile
 
 			'open to append if not done yet
 			If Not fileObj
-				EnsureWriteableFolderExists(LOG_DIRECTORY)
+				TFileHelper.EnsureWriteableDirectoryExists(LOG_DIRECTORY)
 
 				If not fileRenewed
 					fileObj = WriteStream(filename)
