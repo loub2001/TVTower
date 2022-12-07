@@ -680,7 +680,6 @@ Type TApp
 
 
 	Global keyLS_DevOSD:TLowerString = New TLowerString.Create("DEV_OSD")
-	Global keyLS_DevKeys:TLowerString = New TLowerString.Create("DEV_KEYS")
 	Function Update:Int()
 		TProfiler.Enter(_profilerKey_Update)
 		'every 3rd update do a low priority update
@@ -741,13 +740,10 @@ Type TApp
 			Not (App.ExitAppDialogue Or App.EscapeMenuWindow)
 
 			'hotkeys specific for "Dev" or "Not Dev"
-			If GameRules.devConfig.GetBool(keyLS_DevKeys, False)
+			If GameRules.devMode
 				__DevHotKeys()
 			Else
 				__NonDevHotKeys()
-				DebugScreen._enabled = 0
-				TVTDebugInfo = 0
-				debugAudienceInfo.mode = 0
 			EndIf
 
 
@@ -1561,7 +1557,7 @@ endrem
 		'update regardless of enabled or not
 		DebugScreen.UpdateSystem()
 
-		If DebugScreen._enabled
+		If GameRules.devMode And DebugScreen._enabled
 			GameConfig.mouseHandlingDisabled = True
 			DebugScreen.Update()
 		EndIf
@@ -1720,8 +1716,8 @@ endrem
 			EndIf
 		EndIf
 
-		'rendder debug views and control buttons
-		RenderDebugControls()
+		'render debug views and control buttons
+		If GameRules.devMode Then RenderDebugControls()
 
 		'draw loading resource information
 		RenderLoadingResourcesInformation()
@@ -4381,18 +4377,17 @@ Type GameEvents
 		Local PLAYER_NOT_FOUND:String = "[DEV] player not found."
 
 		'do not support cheat in prod mode
-		If Not GameRules.devConfig.GetBool(TApp.keyLS_DevKeys, False) ..
-			And StringHelper.GetArrayIndex(command, ["devkeys", "reloaddev"]) < 0 Then command = "help"
+		If Not GameRules.devMode And StringHelper.GetArrayIndex(command, ["devkeys", "reloaddev"]) < 0 Then command = "help"
 
 		Select command.Trim().toLower()
 			Case "devkeys"
 				Local on:Int = Int(payload) = 1
 				
-				If on And Not GameRules.devConfig.GetBool(TApp.keyLS_DevKeys, False)
-					GameRules.devConfig.AddBool(TApp.keyLS_DevKeys, True)
+				If on And Not GameRules.devMode
+					GameRules.devMode = True
 					GetGame().SendSystemMessage("[DEV] Enabled dev keys.")
-				ElseIf Not on And GameRules.devConfig.GetBool(TApp.keyLS_DevKeys, False)
-					GameRules.devConfig.AddBool(TApp.keyLS_DevKeys, False)
+				ElseIf Not on And GameRules.devMode
+					GameRules.devMode = False
 					GetGame().SendSystemMessage("[DEV] Disabled dev keys.")
 				EndIf
 				
@@ -4762,7 +4757,7 @@ Type GameEvents
 
 		?not debug
 			'dev keys were reactivated
-			If GetGame().mission And GameRules.devConfig.GetBool(TApp.keyLS_DevKeys, False)
+			If GetGame().mission And GameRules.devMode
 				Local toast:TGameToastMessage = New TGameToastMessage
 				toast.SetLifeTime(10)
 				toast.SetMessageType( 1 )
@@ -4777,7 +4772,7 @@ Type GameEvents
 
 		Function SendHelp()
 			GetGame().SendSystemMessage("[DEV] available commands:")
-			If GameRules.devConfig.GetBool(TApp.keyLS_DevKeys, False)
+			If GameRules.devMode
 				GetGame().SendSystemMessage("|b|money|/b| [player#] [+- money]")
 				GetGame().SendSystemMessage("|b|bossmood|/b| [player#] [+- mood %]")
 				GetGame().SendSystemMessage("|b|image|/b| [player#] [+- image %]")

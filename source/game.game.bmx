@@ -275,13 +275,11 @@ Type TGame Extends TGameBase {_exposeToLua="selected"}
 		endif
 		?
 
-		Local devKey:TLowerString = New TLowerString.Create("DEV_KEYS")
 		If mission
 			Local suffix:String = ".~n|b|"+GetRandomLocale2(["MISSION_START_PEP"])+"|/b|"
 			?not debug
-				Local devMode:Int = GameRules.devConfig.GetBool(devKey, False)
-				If devMode
-					GameRules.devConfig.AddBool(devKey, False)
+				If GameRules.devMode
+					GameRules.devMode = 0
 					suffix:+ ("~n"+GetLocale("MISSION_DISABLE_DEV"))
 				EndIf
 			?
@@ -293,14 +291,14 @@ Type TGame Extends TGameBase {_exposeToLua="selected"}
 			toast.SetCaption( GetLocale("MISSION")+": "+mission.getTitle() )
 			toast.SetText( mission.GetDescription() + suffix)
 			GetToastMessageCollection().AddMessage(toast, "TOPRIGHT")
-		ElseIf Not GameRules.devConfig.GetBool(devKey, False)
+		ElseIf Not GameRules.devMode
 			'possibly reenable dev keys for endless game
 			If FileType("config/DEV.xml") = 1
 				Local dataLoader:TDataXmlStorage = New TDataXmlStorage
 				Local data:TData = dataLoader.Load("config/DEV.xml")
 				If data
-					Local devKeyEnabled:Int = data.GetBool(devKey, False)
-					If devKeyEnabled Then GameRules.devConfig.AddBool(devKey, True)
+					Local devKeyEnabled:Int = data.GetBool(New TLowerString.Create("DEV_KEYS"), False)
+					If devKeyEnabled Then GameRules.devMode = True
 				EndIf
 			EndIf
 		EndIf
