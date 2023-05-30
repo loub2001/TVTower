@@ -252,7 +252,7 @@ Type TDatabaseLoader
 		'load according to version
 		Select version
 '			case 2	LoadV2(xml)
-			Case 2	TLogger.Log("TDatabase.Load()", "CANNOT LOAD DB ~q" + fileURI + "~q (version "+version+") - version 2 is deprecated. Upgrade to V3 please." , LOG_LOADING)
+			Case 2	TLogger.Log("TDatabase.Load()", "CANNOT LOAD DB ~q" + fileURI + "~q (version "+version+") - version 2 (deprecated) or invalid XML. Use correct V3-format please." , LOG_LOADING)
 			Case 3	LoadV3(xml)
 			Default	TLogger.Log("TDatabase.Load()", "CANNOT LOAD DB ~q" + fileURI + "~q (version "+version+") - UNKNOWN VERSION." , LOG_LOADING)
 		End Select
