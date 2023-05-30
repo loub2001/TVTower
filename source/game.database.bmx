@@ -1214,7 +1214,7 @@ Type TDatabaseLoader
 		programmeData.country = data.GetString("country", programmeData.country)
 
 		programmeData.distributionChannel = data.GetInt("distribution", programmeData.distributionChannel)
-		programmeData.blocks = data.GetInt("blocks", programmeData.blocks)
+		programmeData.blocks = MathHelper.clamp(data.GetInt("blocks", programmeData.blocks), 1, 12)
 
 		programmeData.broadcastTimeSlotStart = data.GetInt("broadcast_time_slot_start", programmeData.broadcastTimeSlotStart)
 		programmeData.broadcastTimeSlotEnd = data.GetInt("broadcast_time_slot_end", programmeData.broadcastTimeSlotEnd)
