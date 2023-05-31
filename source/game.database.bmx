@@ -245,16 +245,13 @@ Type TDatabaseLoader
 		EndIf
 		'recognize version
 		Local versionNode:TxmlNode = xml.FindRootChild("version")
-		'by default version number is "2"
-		Local version:Int = 2
-		If versionNode Then version = xml.FindValueInt(versionNode, "value", 2)
+		Local version:Int = xml.FindValueInt(versionNode, "value", -1)
 
 		'load according to version
 		Select version
-'			case 2	LoadV2(xml)
-			Case 2	TLogger.Log("TDatabase.Load()", "CANNOT LOAD DB ~q" + fileURI + "~q (version "+version+") - version 2 (deprecated) or invalid XML. Use correct V3-format please." , LOG_LOADING)
+			Case -1	TLogger.Log("TDatabase.Load()", "CANNOT LOAD DB ~q" + fileURI + "~q (version "+version+") - MISSING VERSION ATTRIBUTE or INVALID XML FILE." , LOG_LOADING)
 			Case 3	LoadV3(xml)
-			Default	TLogger.Log("TDatabase.Load()", "CANNOT LOAD DB ~q" + fileURI + "~q (version "+version+") - UNKNOWN VERSION." , LOG_LOADING)
+			Default	TLogger.Log("TDatabase.Load()", "CANNOT LOAD DB ~q" + fileURI + "~q (version "+version+") - UNHANDLED VERSION." , LOG_LOADING)
 		End Select
 	End Method
 
