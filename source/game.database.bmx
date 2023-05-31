@@ -1216,8 +1216,8 @@ Type TDatabaseLoader
 		programmeData.distributionChannel = data.GetInt("distribution", programmeData.distributionChannel)
 		programmeData.blocks = MathHelper.clamp(data.GetInt("blocks", programmeData.blocks), 1, 12)
 
-		programmeData.broadcastTimeSlotStart = data.GetInt("broadcast_time_slot_start", programmeData.broadcastTimeSlotStart)
-		programmeData.broadcastTimeSlotEnd = data.GetInt("broadcast_time_slot_end", programmeData.broadcastTimeSlotEnd)
+		programmeData.broadcastTimeSlotStart = MathHelper.clamp(data.GetInt("broadcast_time_slot_start", programmeData.broadcastTimeSlotStart), 0, 23)
+		programmeData.broadcastTimeSlotEnd = MathHelper.clamp(data.GetInt("broadcast_time_slot_end", programmeData.broadcastTimeSlotEnd), 0, 23)
 		If programmeData.broadcastTimeSlotStart = programmeData.broadcastTimeSlotEnd
 			programmeData.broadcastTimeSlotStart = -1
 			programmeData.broadcastTimeSlotEnd = -1
