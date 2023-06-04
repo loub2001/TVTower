@@ -932,7 +932,7 @@ Type TScript Extends TScriptBase {_exposeToLua="selected"}
 
 	'mixes main and subgenre criterias
 	Method CalculateTotalGenreCriterias(totalReview:Float Var, totalSpeed:Float Var, totalOutcome:Float Var)
-		Local genreDefinition:TMovieGenreDefinition = GetMovieGenreDefinition(mainGenre)
+		Local genreDefinition:TMovieGenreDefinition = GetMovieGenreDefinition([mainGenre])
 		If Not genreDefinition
 			TLogger.Log("TScript.CalculateTotalGenreCriterias()", "script with wrong movie genre definition, criteria calculation failed.", LOG_ERROR)
 			Return
@@ -942,12 +942,13 @@ Type TScript Extends TScriptBase {_exposeToLua="selected"}
 		totalReview = genreDefinition.ReviewMod
 		totalSpeed = genreDefinition.SpeedMod
 
+		'TODO maybe integrate this in the aggregated genre definition
 		'build subgenre-averages
 		Local subGenreDefinition:TMovieGenreDefinition
 		Local subGenreCount:Int
 		Local subGenreOutcome:Float, subGenreReview:Float, subGenreSpeed:Float
 		For Local i:Int = 0 Until subGenres.length
-			subGenreDefinition = GetMovieGenreDefinition(i)
+			subGenreDefinition = GetMovieGenreDefinition([subGenres[i]])
 			If Not subGenreDefinition Then Continue
 
 			subGenreOutcome :+ subGenreDefinition.OutcomeMod

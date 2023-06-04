@@ -323,6 +323,8 @@ Type TBroadcastMaterialDefaultImpl extends TBroadcastMaterial {_exposeToLua="sel
 	'default implementation
 	Method GetGenreTimeMod:Float(definition:TGenreDefinitionBase, hour:Int)
 		hour = hour mod 24
+		'TODO for debugging + revert
+		'print hour + " "+ GetTitle()+" "+ definition.GetGUID() + " "+ definition.TimeMods[hour]
 		Return MathHelper.Clamp(definition.TimeMods[hour], 0, 2)
 	End Method
 

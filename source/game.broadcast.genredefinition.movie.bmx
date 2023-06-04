@@ -1,4 +1,4 @@
-﻿SuperStrict
+SuperStrict
 Import "Dig/base.util.registry.bmx"
 Import "game.broadcast.genredefinition.base.bmx"
 Import "game.popularity.bmx"
@@ -38,7 +38,7 @@ Type TMovieGenreDefinitionCollection
 		For Local map:TMap = EachIn genreMap.Values()
 			local mapData:TData = new TData.Init(map)
 			local definitionReferenceID:int = mapData.GetInt("id")
-			Local definition:TMovieGenreDefinition = Get(definitionReferenceID)
+			Local definition:TMovieGenreDefinition = Get([definitionReferenceID])
 			if not definition then definition = New TMovieGenreDefinition
 
 			definition.LoadFromMap(map)
@@ -65,14 +65,23 @@ Type TMovieGenreDefinitionCollection
 	End Method
 
 
-	Method Get:TMovieGenreDefinition(id:Int)
-		If id < 0 or id >= definitions.length Then return Null
-
-		Return definitions[id]
+	Method Get:TMovieGenreDefinition(ids:Int[])
+		If ids.length = 1
+			Local id:Int = ids[0]
+			If id < 0 or id >= definitions.length Then return Null
+			Return definitions[id]
+		Else
+			'TODO create and possibly persist comined definition
+			print "IDs "+ids[0] +", "+ids[1]
+			Local id:Int = ids[0]
+			If id < 0 or id >= definitions.length Then return Null
+			Return definitions[id]
+		EndIf
 	End Method
 
 
 	Method SetFlag:int(id:int=-1, definition:TMovieFlagDefinition)
+		'TODO das ist keine gute Idee für Flags (ewig lange Liste mit haufenweisen null-Werten)
 		If flagDefinitions.length <= id Then flagDefinitions = flagDefinitions[..id+1]
 		flagDefinitions[id] = definition
 	End Method
@@ -90,8 +99,8 @@ Function GetMovieGenreDefinitionCollection:TMovieGenreDefinitionCollection()
 	Return TMovieGenreDefinitionCollection.GetInstance()
 End Function
 
-Function GetMovieGenreDefinition:TMovieGenreDefinition(genreID:int)
-	Return TMovieGenreDefinitionCollection.GetInstance().Get(genreID)
+Function GetMovieGenreDefinition:TMovieGenreDefinition(genreIDs:int[])
+	Return TMovieGenreDefinitionCollection.GetInstance().Get(genreIDs)
 End Function
 
 
@@ -301,7 +310,7 @@ Type TGameModifierPopularity_ModifyMovieGenrePopularity extends TGameModifierBas
 		'skip if probability is missed
 		if modifyProbability <> 100 and RandRange(0, 100) > modifyProbability then return False
 
-		local popularity:TPopularity = GetMovieGenreDefinition(genre).GetPopularity()
+		local popularity:TPopularity = GetMovieGenreDefinition([genre]).GetPopularity()
 		if not popularity
 			TLogger.Log("TGameModifierPopularity_ModifyMovieGenrePopularity", "cannot find popularity of movie genre: "+genre, LOG_ERROR)
 			return false
