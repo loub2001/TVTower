@@ -7,6 +7,7 @@ Type TMovieGenreDefinitionCollection
 	Field definitions:TMovieGenreDefinition[]
 	Field flagDefinitions:TMovieFlagDefinition[]
 	Global _instance:TMovieGenreDefinitionCollection
+	Field combined:TStringMap = new TStringMap {nosave}
 
 
 	Function GetInstance:TMovieGenreDefinitionCollection()
@@ -56,6 +57,7 @@ Type TMovieGenreDefinitionCollection
 			definition.LoadFromMap(map)
 			SetFlag(definition.referenceId, definition)
 		Next
+		combined.clear()
 	End Method
 
 
@@ -71,12 +73,160 @@ Type TMovieGenreDefinitionCollection
 			If id < 0 or id >= definitions.length Then return Null
 			Return definitions[id]
 		Else
-			'TODO create and possibly persist comined definition
-			print "IDs "+ids[0] +", "+ids[1]
-			Local id:Int = ids[0]
-			If id < 0 or id >= definitions.length Then return Null
-			Return definitions[id]
+			Local key:String = StringHelper.IntArrayToString(ids)
+			Local result:TMovieGenreDefinition = TMovieGenreDefinition(combined.ValueForKey(key))
+			If Not result
+				'print "creating aggregate for key "+key
+				result = createAggregatedMovieGenreDefinition(ids)
+				result.SetGUID(result.GetGUIDBaseName() + "-" + key)
+				combined.Insert(key, result)
+			EndIf
+			Return result
 		EndIf
+	End Method
+
+	Method createAggregatedMovieGenreDefinition:TMovieGenreDefinition(ids:Int[])
+		Local result:TMovieGenreDefinition=new TMovieGenreDefinition
+		Local all:TMovieGenreDefinition[] = new TMovieGenreDefinition[ids.length]
+		Local i:Int
+		Local floats:Float[ids.length]
+		For i:Int = 0 Until ids.length
+			all[i] = Get([ids[i]])
+		Next
+		Local main:TMovieGenreDefinition = all[0]
+		result.BadFollower = main.BadFollower
+		result.GoodFollower = main.GoodFollower
+		'TODO this is not yet optimal
+		'popularity is based on the main popularity
+		'creating and consistently maintaining an aggregated popularity 
+		'would be an enormous effort
+		result.referenceID = main.referenceID
+		result._popularity = main.GetPopularity()
+
+		result.castAttributes = CreateMap()
+		result.focusPointPriorities = CreateMap()
+		For i:Int = 0 Until ids.length
+			collectKeys(all[i].castAttributes, result.castAttributes)
+			collectKeys(all[i].focusPointPriorities, result.focusPointPriorities)
+		Next
+
+		'audience attraction
+		result.AudienceAttraction = main.AudienceAttraction.Copy()
+		Local att:TAudience = result.AudienceAttraction
+
+		Select all.length
+			Case 1
+				addWeighted(main.castAttributes, result.castAttributes, 1.0, 0.0)
+
+				addWeighted(main.focusPointPriorities, result.focusPointPriorities, 1.0, 1.0)
+				
+				'attraction already copied
+			Case 2
+				addWeighted(main.castAttributes, result.castAttributes, 0.75, 0.0)
+				addWeighted(all[1].castAttributes, result.castAttributes, 0.25, 0.0)
+
+				addWeighted(main.focusPointPriorities, result.focusPointPriorities, 0.75, 1.0)
+				addWeighted(all[1].focusPointPriorities, result.focusPointPriorities, 0.25, 1.0)
+
+				att.Multiply(0.75).add(attr(all[1],0.25))
+			Case 3
+				addWeighted(main.castAttributes, result.castAttributes, 0.6, 0.0)
+				addWeighted(all[1].castAttributes, result.castAttributes, 0.25, 0.0)
+				addWeighted(all[2].castAttributes, result.castAttributes, 0.15, 0.0)
+
+				addWeighted(main.focusPointPriorities, result.focusPointPriorities, 0.6, 1.0)
+				addWeighted(all[1].focusPointPriorities, result.focusPointPriorities, 0.25, 1.0)
+				addWeighted(all[2].focusPointPriorities, result.focusPointPriorities, 0.15, 1.0)
+
+				att.Multiply(0.6).add(attr(all[1],0.25)).add(attr(all[2],0.15))
+			Case 4
+				addWeighted(main.castAttributes, result.castAttributes, 0.6, 0.0)
+				addWeighted(all[1].castAttributes, result.castAttributes, 0.20, 0.0)
+				addWeighted(all[2].castAttributes, result.castAttributes, 0.12, 0.0)
+				addWeighted(all[3].castAttributes, result.castAttributes, 0.08, 0.0)
+
+				addWeighted(main.focusPointPriorities, result.focusPointPriorities, 0.6, 1.0)
+				addWeighted(all[1].focusPointPriorities, result.focusPointPriorities, 0.20, 1.0)
+				addWeighted(all[2].focusPointPriorities, result.focusPointPriorities, 0.12, 1.0)
+				addWeighted(all[3].focusPointPriorities, result.focusPointPriorities, 0.08, 1.0)
+
+				att.Multiply(0.6).add(attr(all[1],0.20)).add(attr(all[2],0.12)).add(attr(all[2],0.08))
+			Default throw "too many genres "+ all.length
+		End Select
+
+		'speed
+		For i:Int = 0 Until ids.length
+			floats[i] = all[i].SpeedMod
+			result.SpeedMod = weighted(floats)
+		Next
+		'outcome
+		For i:Int = 0 Until ids.length
+			floats[i] = all[i].outcomeMod
+			result.outcomeMod = weighted(floats)
+		Next
+		'review
+		For i:Int = 0 Until ids.length
+			floats[i] = all[i].ReviewMod
+			result.ReviewMod = weighted(floats)
+		Next
+
+		'timeMod
+		result.TimeMods = result.TimeMods[..24]
+		For Local hour:Int = 0 To 23
+			For i:Int = 0 Until ids.length
+				floats[i] = all[i].TimeMods[hour]
+				result.TimeMods[hour] = weighted(floats)
+			Next
+		Next
+
+		Return result
+
+		Function weighted:Float(v:Float[])
+			Select v.length
+				Case 1
+					Return v[0]
+				Case 2
+					Return 0.75 * v[0] + 0.25 * v[1]
+				Case 3
+					Return 0.6 * v[0] + 0.25 * v[1] + 0.15 * v[2]
+				Case 4
+					Return 0.6 * v[0] + 0.2 * v[1] + 0.12 * v[2] + 0.08 * v[3]
+				Default throw "too many genres "+ v.length
+			End Select
+		End Function
+
+		Function attr:TAudience(def:TMovieGenreDefinition, factor:Float)
+			Return def.AudienceAttraction.Copy().Multiply(factor)
+		EndFunction
+
+		Function collectKeys(map:TMap, result:TMap)
+			If map
+				For Local key:String = EachIn map.Keys()
+					result.insert(key, "0")
+				Next
+			EndIf
+		EndFunction
+
+		Function addWeighted(map:TMap, result:TMap, weight:Float, defaultValue:Float)
+			Local current:Float
+			Local toAddRaw:Float
+			Local value:Object
+			For Local key:String = EachIn result.Keys()
+				current=Float(result.ValueForKey(key).ToString())
+				If map
+					value=map.ValueForKey(key)
+					If value
+						toAddRaw = Float(value.ToString())
+					Else
+						toAddRaw = defaultValue
+					EndIF
+				Else
+					toAddRaw = defaultValue
+				EndIf
+				current:+ weight*toAddRaw
+				result.insert(key, String(current))
+			Next
+		EndFunction
 	End Method
 
 
