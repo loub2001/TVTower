@@ -177,6 +177,7 @@ Type TProgrammeDataCollection Extends TGameObjectCollection
 
 
 	Method GetGenreRefreshModifier:Float(genre:Int)
+		'TODO add refresh modifier to programmedatamods (TMovieGenreDefinition
 		'values get multiplied with the refresh factor
 		'so this means: higher (>1.0) values increase the resulting
 		'topicality win
@@ -196,7 +197,7 @@ Type TProgrammeDataCollection Extends TGameObjectCollection
 			Case TVTProgrammeGenre.Drama
 				Return 1.05
 			Case TVTProgrammeGenre.Erotic
-				Return 1.1
+				Return 0.9
 			Case TVTProgrammeGenre.Family
 				Return 1.15
 			Case TVTProgrammeGenre.Fantasy
@@ -219,7 +220,9 @@ Type TProgrammeDataCollection Extends TGameObjectCollection
 				Return 0.95
 			Case TVTProgrammeGenre.Show, ..
 			     TVTProgrammeGenre.Show_Politics, ..
-			     TVTProgrammeGenre.Show_Music
+			     TVTProgrammeGenre.Show_Music, ..
+			     TVTProgrammeGenre.Show_Talk, ..
+			     TVTProgrammeGenre.Show_Game
 				Return 0.90
 			Case TVTProgrammeGenre.Event, ..
 			     TVTProgrammeGenre.Event_Politics, ..
@@ -320,23 +323,46 @@ Type TProgrammeDataCollection Extends TGameObjectCollection
 
 	'amount the refresh effect gets reduced/increased by programme flags
 	Method GetFlagsRefreshModifier:Float(flags:Int)
-		'values get multiplied with the refresh factor
-		'so this means: higher (>1.0) values increase the resulting
-		'refresh value
+		'higher (>1.0) values increase the resulting refresh value
 
-		Local flagMod:Float = 1.0
-		If flags & TVTProgrammeDataFlag.LIVE Then flagMod :* 0.75
+		Local flagMod:Float = 0.0
+		Local count:Int = 0
+		If flags & TVTProgrammeDataFlag.LIVE 
+			flagMod :+ 0.75
+			count :+ 1
+		EndIf
 		'if flags & TVTProgrammeDataFlag.ANIMATION then flagMod :* 1.0
-		If flags & TVTProgrammeDataFlag.CULTURE Then flagMod :* 1.1
-		If flags & TVTProgrammeDataFlag.CULT Then flagMod :* 1.2
-		If flags & TVTProgrammeDataFlag.TRASH Then flagMod :* 1.05
-		If flags & TVTProgrammeDataFlag.BMOVIE Then flagMod :* 1.05
+		If flags & TVTProgrammeDataFlag.CULTURE
+			flagMod :+ 1.1
+			count :+ 1
+		EndIf
+		If flags & TVTProgrammeDataFlag.CULT
+			flagMod :+ 1.2
+			count :+ 1
+		EndIf
+		If flags & TVTProgrammeDataFlag.TRASH
+			flagMod :+ 1.05
+			count :+ 1
+		EndIf
+		If flags & TVTProgrammeDataFlag.BMOVIE
+			flagMod :+ 1.05
+			count :+ 1
+		EndIf
 		'if flags & TVTProgrammeDataFlag.XRATED then flagMod :* 1.0
-		If flags & TVTProgrammeDataFlag.PAID Then flagMod :* 0.85
+		If flags & TVTProgrammeDataFlag.PAID
+			flagMod :+ 0.85
+			count :+ 1
+		EndIf
 		'if flags & TVTProgrammeDataFlag.SERIES then flagMod :* 1.0
-		If flags & TVTProgrammeDataFlag.SCRIPTED Then flagMod :* 0.90
-
-		Return flagMod
+		If flags & TVTProgrammeDataFlag.SCRIPTED
+			flagMod :+ 0.90
+			count :+ 1
+		EndIf
+		If count = 0
+			Return 1.0
+		Else
+			return flagMod/count
+		EndIf
 	End Method
 
 
@@ -1466,11 +1492,11 @@ Type TProgrammeData Extends TBroadcastMaterialSource {_exposeToLua}
 		'ATTENTION: cache won't work with dynamic/changing modifiers
 
 		Local timesBroadcastedValue:Int = GetTimesBroadcasted()
-		Local age:Int = Max(0, GetWorldTime().GetYear() - GetYear())
 
 		Local newCacheCode:String = timesBroadcastedValue + "_" + GetWorldTime().GetDayHour()
 
 		If maxTopicalityCacheCode <> newCacheCode
+			Local age:Int = Max(0, GetWorldTime().GetYear() - GetYear())
 			Local res:Float = 1.0
 
 			Local timesBroadcasted:Int = 0
@@ -1700,23 +1726,28 @@ Type TProgrammeData Extends TBroadcastMaterialSource {_exposeToLua}
 
 	'override
 	Method RefreshTopicality:Float(refreshModifier:Float = 1.0) {_private}
-		Local minimumRelativeRefresh:Float = 1.10 '110%
-		Local minimumAbsoluteRefresh:Float = 0.10 '10%
+		If GetTopicality() < maxTopicalityCache 'getTopicality() updates topicality and maxTopicalityCache
+			'Local topOld:Float = topicality
+			Local genrePopMod:Float = MathHelper.Clamp(1.0 + GetGenreDefinition().GetPopularity().popularity / 100.0, 0.75, 1.25)
+			Local minimumRelativeRefresh:Float = 1.10 '110%
+			Local minimumAbsoluteRefresh:Float = 0.10 '10%
 
-		refreshModifier :* GetProgrammeDataCollection().refreshFactor
-		Local modifer:Float = GetRefreshModifier()
-		If modifer <> 1.0
-			refreshModifier = 1.0 + (refreshModifier - 1.0) * modifer
+			refreshModifier :* GetProgrammeDataCollection().refreshFactor
+			Local modifer:Float = GetRefreshModifier()
+			If modifer <> 1.0
+				refreshModifier = 1.0 + (refreshModifier - 1.0) * modifer
+			EndIf
+			refreshModifier :* GetGenreRefreshModifier() 'TODO GenreRefreshModifier auf alle genres ausdehnen?
+			refreshModifier :* GetFlagsRefreshModifier()
+			refreshModifier :* genrePopMod
+
+			refreshModifier = Max(refreshModifier, minimumRelativeRefresh)
+			topicality = GetTopicality() 'limit to max topicality
+
+			topicality :+ Max(topicality * (refreshModifier-1.0), minimumAbsoluteRefresh)
+			topicality = MathHelper.Clamp(topicality, 0, GetMaxTopicality())
+			'print GetTitle() + " "+ topOld+ " -> "+ topicality + "   ("+GetGenreDefinition().GetPopularity().popularity+")"
 		EndIf
-		refreshModifier :* GetGenreRefreshModifier()
-		refreshModifier :* GetFlagsRefreshModifier()
-
-		refreshModifier = Max(refreshModifier, minimumRelativeRefresh)
-		topicality = GetTopicality() 'limit to max topicality
-
-		topicality :+ Max(topicality * (refreshModifier-1.0), minimumAbsoluteRefresh)
-		topicality = MathHelper.Clamp(topicality, 0, GetMaxTopicality())
-
 		Return topicality
 	End Method
 
