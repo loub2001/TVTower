@@ -5,7 +5,7 @@ Import "game.popularity.bmx"
 
 Type TMovieGenreDefinitionCollection
 	Field definitions:TMovieGenreDefinition[]
-	Field flagDefinitions:TMovieFlagDefinition[]
+	Field flagDefinitions:TIntMap = new TIntMap
 	Global _instance:TMovieGenreDefinitionCollection
 	Field combined:TStringMap = new TStringMap {nosave}
 
@@ -22,7 +22,7 @@ Type TMovieGenreDefinitionCollection
 		For local def:TGenreDefinitionBase = EachIn definitions
 			def.Reset()
 		Next
-		For local def:TGenreDefinitionBase = EachIn flagDefinitions
+		For local def:TGenreDefinitionBase = EachIn flagDefinitions.Values()
 			def.Reset()
 		Next
 
@@ -231,16 +231,12 @@ Type TMovieGenreDefinitionCollection
 
 
 	Method SetFlag:int(id:int=-1, definition:TMovieFlagDefinition)
-		'TODO das ist keine gute Idee für Flags (ewig lange Liste mit haufenweisen null-Werten)
-		If flagDefinitions.length <= id Then flagDefinitions = flagDefinitions[..id+1]
-		flagDefinitions[id] = definition
+		flagDefinitions.Insert(id, definition)
 	End Method
 
 
 	Method GetFlag:TMovieFlagDefinition(id:Int)
-		If id < 0 or id >= flagDefinitions.length Then return Null
-
-		Return flagDefinitions[id]
+		Return TMovieFlagDefinition(flagDefinitions.ValueForKey(id))
 	End Method
 End Type
 
