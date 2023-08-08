@@ -309,7 +309,8 @@ Type TProgramme Extends TBroadcastMaterialDefaultImpl {_exposeToLua="selected"}
 		'adjust topicality relative to possible audience
 		'using the maximum of all blocks here (as this is the maximum
 		'audience knowing about that movie)
-		data.CutTopicality(GetTopicalityCutModifier( maxWholeMarketAudiencePercentage ))
+		Local difficultyMod:Float = GetPlayerDifficulty(GetOwner()).programmeTopicalityCutMod
+		data.CutTopicality(GetTopicalityCutModifier( maxWholeMarketAudiencePercentage ) / difficultyMod)
 
 
 		'if someone can watch that movie, increase the aired amount
