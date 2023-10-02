@@ -1727,26 +1727,30 @@ Type TProgrammeData Extends TBroadcastMaterialSource {_exposeToLua}
 	'override
 	Method RefreshTopicality:Float(refreshModifier:Float = 1.0) {_private}
 		If GetTopicality() < maxTopicalityCache 'getTopicality() updates topicality and maxTopicalityCache
-			'Local topOld:Float = topicality
+			Local topOld:Float = topicality
 			Local genrePopMod:Float = MathHelper.Clamp(1.0 + GetGenreDefinition().GetPopularity().popularity / 100.0, 0.75, 1.25)
-			Local minimumRelativeRefresh:Float = 1.10 '110%
-			Local minimumAbsoluteRefresh:Float = 0.10 '10%
 
-			refreshModifier :* GetProgrammeDataCollection().refreshFactor
-			Local modifer:Float = GetRefreshModifier()
-			If modifer <> 1.0
-				refreshModifier = 1.0 + (refreshModifier - 1.0) * modifer
-			EndIf
-			refreshModifier :* GetGenreRefreshModifier() 'TODO GenreRefreshModifier auf alle genres ausdehnen?
-			refreshModifier :* GetFlagsRefreshModifier()
+'TODO eliminate refreshfactor
+'			GetProgrammeDataCollection().refreshFactor
+			refreshModifier :* GetRefreshModifier()
 			refreshModifier :* genrePopMod
+			refreshModifier :* (GetGenreRefreshModifier() + GetFlagsRefreshModifier())/2.0
+				 'TODO GenreRefreshModifier auf alle genres ausdehnen?
 
-			refreshModifier = Max(refreshModifier, minimumRelativeRefresh)
-			topicality = GetTopicality() 'limit to max topicality
+			Local absRefresh1:Float = 0.025
+			Local absRefresh2:Float = 0.15 * (1.2-maxTopicalityCache)
+			Local absRefreshSum:Float = (absRefresh1 + absRefresh2) * maxTopicalityCache
 
-			topicality :+ Max(topicality * (refreshModifier-1.0), minimumAbsoluteRefresh)
-			topicality = MathHelper.Clamp(topicality, 0, GetMaxTopicality())
-			'print GetTitle() + " "+ topOld+ " -> "+ topicality + "   ("+GetGenreDefinition().GetPopularity().popularity+")"
+			Local weightedRefresh:Float = refreshModifier * absRefreshSum
+
+			topicality = MathHelper.Clamp(topicality + weightedRefresh, 0, maxTopicalityCache)
+			print MathHelper.NumberToString(topOld,3)+ " -> "..
+				+ MathHelper.NumberToString(topicality,3) + "   ("..
+				+ MathHelper.NumberToString(maxTopicalityCache,3)+" "..
+				+ MathHelper.NumberToString(refreshModifier,3)+ " "..
+				+ MathHelper.NumberToString(weightedRefresh,3)+" "..
+				+ (Int((maxTopicalityCache-topicality) / weightedRefresh) +1)..
+				+ ") "+GetTitle()
 		EndIf
 		Return topicality
 	End Method
