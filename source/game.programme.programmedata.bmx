@@ -367,6 +367,9 @@ Type TProgrammeDataCollection Extends TGameObjectCollection
 
 
 	Method RefreshTopicalities:Int()
+		'TODO a modifier depending on the number of days played could be passed
+		'the more days, the more movies, the more time until fully recovered
+		'0-10: 1, 11-20:0.95, 21-30:0.9
 		For Local data:TProgrammeData = EachIn entries.Values()
 			data.RefreshTopicality()
 			data.RefreshTrailerTopicality()
@@ -1738,7 +1741,7 @@ Type TProgrammeData Extends TBroadcastMaterialSource {_exposeToLua}
 				 'TODO GenreRefreshModifier auf alle genres ausdehnen?
 
 			Local absRefresh1:Float = 0.025
-			Local absRefresh2:Float = 0.15 * (1.2-maxTopicalityCache)
+			Local absRefresh2:Float = 0.15 * (1.15-maxTopicalityCache)
 			Local absRefreshSum:Float = (absRefresh1 + absRefresh2) * maxTopicalityCache
 
 			Local weightedRefresh:Float = refreshModifier * absRefreshSum
