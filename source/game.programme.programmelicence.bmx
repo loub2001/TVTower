@@ -2563,7 +2563,16 @@ Type TProgrammeLicence Extends TBroadcastMaterialSource {_exposeToLua="selected"
 			skin.RenderBox(contentX + 5 + 51, contentY, 52, -1, GetTimesBroadcasted(useOwner), "repetitions", "neutral", skin.fontBold)
 		endif
 		'record
-		skin.RenderBox(contentX + 5 + 107, contentY, 88, -1, TFunctions.convertValue(GetBroadcastStatistic(useOwner).GetBestAudienceResult(useOwner, -1).audience.GetTotalSum(),2), "maxAudience", "neutral", skin.fontBold)
+		If KeyManager.IsDown(KEY_LSHIFT) Or KeyManager.IsDown(KEY_RSHIFT)
+			Local show:String = "-"
+			If useOwner
+				Local perc:Float = GetBroadcastStatistic(useOwner).bestAudiencePercantage[useOwner-1]
+				If perc > 0 then show = MathHelper.NumberToString(perc*100.0)+"%"
+			EndIf
+			skin.RenderBox(contentX + 5 + 107, contentY, 88, -1, show, "maxAudience", "neutral", skin.fontBold)
+		Else
+			skin.RenderBox(contentX + 5 + 107, contentY, 88, -1, TFunctions.convertValue(GetBroadcastStatistic(useOwner).GetBestAudienceResult(useOwner, -1).audience.GetTotalSum(),2), "maxAudience", "neutral", skin.fontBold)
+		EndIf
 
 		'price
 		local showPrice:int = not data.hasBroadcastFlag(TVTBroadcastMaterialSourceFlag.HIDE_PRICE)
