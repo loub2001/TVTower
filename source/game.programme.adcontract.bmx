@@ -1687,9 +1687,7 @@ Type TAdContract Extends TBroadcastMaterialSource {_exposeToLua="selected"}
 		'box area
 		'box area starts with padding, ends with padding and contains
 		'2 lines of boxes
-		Local boxLines:Int = 2
-		If GetSpotCount() > 1 Then boxLines = 3
-		boxAreaH = boxLines * boxAreaPaddingY + boxLines * boxH
+		boxAreaH = 2 * boxAreaPaddingY + 2 * boxH
 
 		'message area
 		If GetLimitedToTargetGroup() > 0 Then msgAreaH :+ msgH
@@ -1825,18 +1823,16 @@ Type TAdContract Extends TBroadcastMaterialSource {_exposeToLua="selected"}
 		Else
 			skin.RenderBox(contentX + 5, contentY, 100, -1, TFunctions.convertValue(GetMinAudienceForPlayer(forPlayerID), 2), "minAudience", "neutral", skin.fontBold)
 		EndIf
-		'penalty
-		skin.RenderBox(contentX + 5 + 104, contentY, 96, -1, TFunctions.convertValue(GetPenaltyForPlayer(forPlayerID), 2), "money", "bad", skin.fontBold, ALIGN_RIGHT_CENTER)
-		'profit
-		skin.RenderBox(contentX + 5 + 204, contentY, 96, -1, TFunctions.convertValue(GetProfitForPlayer(forPlayerID), 2), "money", "good", skin.fontBold, ALIGN_RIGHT_CENTER)
-
-		If GetSpotCount() > 1
-			'=== BOX LINE 3 ===
-			contentY :+ boxH
+			If KeyManager.IsDown(KEY_LSHIFT) Or KeyManager.IsDown(KEY_RSHIFT)
 			'penalty per spot
 			skin.RenderBox(contentX + 5 + 104, contentY, 96, -1, TFunctions.convertValue(GetPenaltyForPlayer(forPlayerID)/GetSpotCount(), 2), "money", "bad", skin.fontBold, ALIGN_RIGHT_CENTER)
 			'profit per spot
 			skin.RenderBox(contentX + 5 + 204, contentY, 96, -1, TFunctions.convertValue(GetProfitForPlayer(forPlayerID)/GetSpotCount(), 2), "money", "good", skin.fontBold, ALIGN_RIGHT_CENTER)
+		Else
+			'penalty
+			skin.RenderBox(contentX + 5 + 104, contentY, 96, -1, TFunctions.convertValue(GetPenaltyForPlayer(forPlayerID), 2), "money", "bad", skin.fontBold, ALIGN_RIGHT_CENTER)
+			'profit
+			skin.RenderBox(contentX + 5 + 204, contentY, 96, -1, TFunctions.convertValue(GetProfitForPlayer(forPlayerID), 2), "money", "good", skin.fontBold, ALIGN_RIGHT_CENTER)
 		EndIf
 
 
