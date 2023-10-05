@@ -2552,18 +2552,20 @@ Type TProgrammeLicence Extends TBroadcastMaterialSource {_exposeToLua="selected"
 		'boxes have a top-padding (except with messages)
 		if msgAreaH = 0 then contentY :+ boxAreaPaddingY
 
+		Local shiftDown:Int = KeyManager.IsDown(KEY_LSHIFT) Or KeyManager.IsDown(KEY_RSHIFT)
 
 		'=== BOX LINE 1 ===
 		'blocks
 		skin.RenderBox(contentX + 5, contentY, 47, -1, GetBlocks(), "duration", "neutral", skin.fontBold)
 		'repetitions
-		if useOwner <= 0
+		'TODO total number of broadcasts only when not owned?
+		if useOwner <= 0 Or shiftDown
 			skin.RenderBox(contentX + 5 + 51, contentY, 52, -1, GetTimesBroadcasted(-1), "repetitions", "neutral", skin.fontBold)
 		else
 			skin.RenderBox(contentX + 5 + 51, contentY, 52, -1, GetTimesBroadcasted(useOwner), "repetitions", "neutral", skin.fontBold)
 		endif
 		'record
-		If KeyManager.IsDown(KEY_LSHIFT) Or KeyManager.IsDown(KEY_RSHIFT)
+		If shiftDown
 			Local show:String = "-"
 			If useOwner
 				Local perc:Float = GetBroadcastStatistic(useOwner).bestAudiencePercantage[useOwner-1]
