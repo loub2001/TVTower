@@ -507,7 +507,7 @@ Type TInGameInterface
 				MoneyToolTip.enabled 	= 1
 				MoneyToolTip.Hover()
 			EndIf
-			If THelper.MouseIn(309,447,178,32) or CurrentAudienceToolTip.forceShow
+			If chatWindowMode <> 3 And (THelper.MouseIn(309,447,178,32) or CurrentAudienceToolTip.forceShow)
 				local playerProgrammePlan:TPlayerProgrammePlan = GetPlayerProgrammePlan( GetPlayerBaseCollection().playerID )
 				if playerProgrammePlan
 					Local audienceStr:String = "0"
@@ -701,16 +701,16 @@ Type TInGameInterface
 		'=== THINGS DONE REGARDLESS OF PAUSED STATE ===
 
 
-		'TODO implement toggling here
-
 		'=== SHOW / HIDE / LOCK CHAT ===
 			'arrow area
 		if MouseManager.IsClicked(1) And THelper.MouseIn(537, 397, 215, 20)
-			'TODO smaller areas for arrows
+			'TODO no off-mode?, 
+			'skip audience details if TV is off?
+			'skip chat if chat is empty?
 			If THelper.MouseIn(537, 397, 25, 20)
-				ChatWindowMode = (ChatWindowMode + 2) Mod 3
+				ChatWindowMode = (ChatWindowMode + 3) Mod 4
 			ElseIf THelper.MouseIn(717, 397, 25, 20)
-				ChatWindowMode = (ChatWindowMode + 1) Mod 3
+				ChatWindowMode = (ChatWindowMode + 1) Mod 4
 			EndIf
 			'handled left click
 			MouseManager.SetClickHandled(1)
@@ -958,6 +958,92 @@ Type TInGameInterface
 		endif
 		GetSpriteFromRegistry("gfx_interface_ingamechat_key."+lockMode).Draw(770, arrowPos)
 		'===
+
+
+		'=== DRAW AUDIENCE DETAILS
+		If ChatWindowMode = 3 And GetPlayerProgrammePlan(ShowChannel)
+			Local audienceResult:TAudienceResult = GetBroadcastManager().GetAudienceResult(ShowChannel)
+			Local iconWidth:Int=15
+			Local iconHeight:Int=15
+			Local w:Int=230
+			Local lineheight:Int=15
+			Local lineX:Int = 520
+			Local lineY:Int = 420
+			Local lineText:String = ""
+			Local lineTextX:Int = lineX + iconWidth + 5
+			Local lineTextWidth:Int = w - (iconWidth + 5)
+			Local lineIconOffsetY:Int = Floor(0.5 * (lineHeight - iconHeight))
+	'		Local lineTextOffsetY:Int = Floor(0.5 * (lineHeight - lineTextHeight)) 'lineIconDY + 2
+			'add lines so we can have an easier "for loop"
+			Local lines:String[TVTTargetGroup.count]
+			Local percents:String[TVTTargetGroup.count]
+			Local numbers:String[TVTTargetGroup.count]
+			Local targetGroupID:Int = 0
+			Local colorLight:SColor8 = new SColor8(230,230,230)
+			Local useFont:TBitmapFont = _interfaceFont 'GetBitmapFont("default", 12) - TODO warum geht das nur als BOLDFONT??
+
+			'show how many people your stations cover (compared to country)
+			Local reach:Int = GetStationMap( GetPlayerBase().playerID ).GetReach()
+			Local totalReach:Int = GetStationMapCollection().population
+			lineText = GetLocale("BROADCASTING_AREA") + ": " + TFunctions.convertValue(reach, 2, 0) + " (" + MathHelper.NumberToString(100.0 * Float(reach)/totalReach, 2) + "% "+GetLocale("OF_THE_MAP")+")"
+			useFont.DrawSimple(lineText, lineX, lineY, colorLight)
+			lineY :+ useFont.GetHeight(lineText)
+	
+			'draw overview text
+			lineText = StringHelper.ucfirst(GetLocale("POTENTIAL_AUDIENCE")) + ": " + TFunctions.convertValue(audienceResult.PotentialMaxAudience.GetTotalSum(), 2, 0) + " (" + MathHelper.NumberToString(100.0 * audienceResult.GetPotentialMaxAudienceQuotePercentage(), 2) + "%)"
+			useFont.DrawSimple(lineText, lineX, lineY, colorLight)
+			lineY :+ 1 * useFont.GetHeight(lineText) + 5
+
+			For Local i:Int = 1 To TVTTargetGroup.count
+				targetGroupID = TVTTargetGroup.GetAtIndex(i)
+				Local col:SColor8 = GameConfig.GetTargetGroupColor(i)
+				lines[i-1] = "|color="+col.r+","+col.g+","+col.b+"|"+Chr(9654)+"|/color| " + getLocale("TARGETGROUP_"+TVTTargetGroup.GetAsString(targetGroupID)) + ": "
+				numbers[i-1] = TFunctions.convertValue(audienceResult.Audience.GetTotalValue(targetGroupID), 2, 0)
+
+				if i = 8 or i = 9
+					percents[i-1] = MathHelper.NumberToString(audienceResult.Audience.GetTotalValue(targetGroupID) / audienceResult.GetPotentialMaxAudience().GetTotalValue(targetGroupID) * 100, 2)
+				else
+					percents[i-1] = MathHelper.NumberToString(audienceResult.Audience.GetTotalValue(targetGroupID) / audienceResult.GetPotentialMaxAudience().GetTotalValue(targetGroupID) * 100, 2)
+				endif
+			Next
+
+			Local colorDark:SColor8 = new SColor8(230,230,230)
+			Local colorTextLight:SColor8 = SColor8AdjustFactor(colorLight, 0)
+			Local colorTextDark:SColor8 = SColor8AdjustFactor(colorDark, -140)
+
+			For Local i:Int = 1 To TVTTargetGroup.count
+				'shade the rows
+'				If i Mod 2 = 0 Then SetColor(colorLight) Else SetColor(colorDark)
+'				DrawRect(lineX, lineY, w, lineHeight)
+'				SetColor 250,250,250
+'				DrawLine(lineX, lineY, lineX + w -1, lineY)
+'				SetColor 200,200,200
+'				DrawLine(lineX, lineY + lineHeight -1, lineX + w -1, lineY + lineHeight -1)
+
+				'draw icon
+'				if i mod 2 = 0 then SetColor 170,170,170 else SetColor 150,150,150
+'				'icon is offset "in the image" already 1*1px
+'				DrawRect(lineX, lineY + lineIconOffsetY - 1, iconWidth+2, iconHeight+2)
+'				if i mod 2 = 0 then SetColor 130,130,130 else SetColor 100,100,100
+'				DrawRect(lineX+1, lineY + lineIconOffsetY - 1 +1, iconWidth+1, iconHeight+1)
+
+				SetColor 255,255,255
+				targetGroupID = TVTTargetGroup.GetAtIndex(i)
+				GetSpriteFromRegistry("gfx_targetGroup_"+TVTTargetGroup.GetAsString(targetGroupID).toLower()).draw(lineX+1, lineY + lineIconOffsetY)
+				'draw text
+'				If i Mod 2 = 0
+					useFont.DrawBox(lines[i-1], lineTextX, lineY,  w, lineHeight, sALIGN_LEFT_CENTER, ColorTextLight)
+					useFont.DrawBox(numbers[i-1], lineTextX, lineY, lineTextWidth - 5 - 50, lineHeight, sALIGN_RIGHT_CENTER, ColorTextLight)
+					useFont.DrawBox(percents[i-1]+"%", lineTextX, lineY, lineTextWidth - 5, lineHeight, sALIGN_RIGHT_CENTER, ColorTextLight)
+'				Else
+'					_interfaceFont.DrawBox(lines[i-1], lineTextX, lineY,  w, lineHeight, sALIGN_LEFT_CENTER, ColorTextDark)
+'					_interfaceFont.DrawBox(numbers[i-1], lineTextX, lineY, lineTextWidth - 5 - 50, lineHeight, sALIGN_RIGHT_CENTER, ColorTextDark)
+'					_interfaceFont.DrawBox(percents[i-1]+"%", lineTextX, lineY, lineTextWidth - 5, lineHeight, sALIGN_RIGHT_CENTER, ColorTextDark)
+'				EndIf
+
+				lineY :+ lineHeight
+			Next
+		EndIf
 
 
 		'change mouse icon when hovering the "buttons"
