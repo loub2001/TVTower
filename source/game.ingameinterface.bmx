@@ -704,14 +704,15 @@ Type TInGameInterface
 		'=== SHOW / HIDE / LOCK CHAT ===
 			'arrow area
 		if MouseManager.IsClicked(1) And THelper.MouseIn(537, 397, 215, 20)
-			'TODO no off-mode?, 
-			'skip audience details if TV is off?
-			'skip chat if chat is empty?
+			Local emptyChatFallback:Int = 3
 			If THelper.MouseIn(537, 397, 25, 20)
-				ChatWindowMode = (ChatWindowMode + 3) Mod 4
+				ChatWindowMode :- 1
+				emptyChatFallback = 1
 			ElseIf THelper.MouseIn(717, 397, 25, 20)
-				ChatWindowMode = (ChatWindowMode + 1) Mod 4
+				ChatWindowMode :+ 1
 			EndIf
+			ChatWindowMode = (ChatWindowMode + 4)Mod 4
+			If ChatWindowMode = 2 And chat And chat.guiList.entries.count() = 0 Then ChatWindowMode = emptyChatFallback
 			'handled left click
 			MouseManager.SetClickHandled(1)
 		endif
@@ -723,7 +724,7 @@ Type TInGameInterface
 			MouseManager.SetClickHandled(1)
 		endif
 
-		if chat and ChatWindowMode = 2 
+		if chat and ChatWindowMode = 2
 			chat.ShowChat()
 			ChatContainsUnread = False
 		else
@@ -961,8 +962,8 @@ Type TInGameInterface
 
 
 		'=== DRAW AUDIENCE DETAILS
-		If ChatWindowMode = 3 And GetPlayerProgrammePlan(ShowChannel)
-			Local audienceResult:TAudienceResult = GetBroadcastManager().GetAudienceResult(ShowChannel)
+		If ChatWindowMode = 3
+			Local audienceResult:TAudienceResult = GetBroadcastManager().GetAudienceResult(playerID)
 			Local iconWidth:Int=15
 			Local iconHeight:Int=15
 			Local w:Int=230
