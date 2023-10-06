@@ -240,11 +240,11 @@ Type TInGameInterface
 
 			'by default hide chat again (as it is empty now)
 			'(except if user did lock the current view)
-			'TODO what to show on cleanup
+			'...disabled - main sets the chat window mode according to the state in save game
 			'If not ChatShowHideLocked
-			'	ChatShow = False
+			'	ChatWindowMode = 1
 			'EndIf
-			
+
 			ChatContainsUnread = False
 		EndIf
 		If Not _interfaceTVfamily Then _interfaceTVfamily = New TWatchingFamily().Init()
@@ -705,20 +705,13 @@ Type TInGameInterface
 
 		'=== SHOW / HIDE / LOCK CHAT ===
 			'arrow area
-		if MouseManager.IsClicked(1) And THelper.MouseIn(540, 397, 200, 20)
+		if MouseManager.IsClicked(1) And THelper.MouseIn(537, 397, 215, 20)
 			'TODO smaller areas for arrows
-			If THelper.MouseIn(540, 397, 100, 20)
+			If THelper.MouseIn(537, 397, 25, 20)
 				ChatWindowMode = (ChatWindowMode + 2) Mod 3
-				print ChatWindowMode
-			ElseIf THelper.MouseIn(640, 397, 100, 20)
+			ElseIf THelper.MouseIn(717, 397, 25, 20)
 				ChatWindowMode = (ChatWindowMode + 1) Mod 3
-				print ChatWindowMode
 			EndIf
-			If ChatWindowMode = 2
-				'reset unread
-				ChatContainsUnread = False
-			EndIf
-
 			'handled left click
 			MouseManager.SetClickHandled(1)
 		endif
@@ -730,12 +723,11 @@ Type TInGameInterface
 			MouseManager.SetClickHandled(1)
 		endif
 
-		if chat and not ChatShowHideLocked
-			if ChatWindowMode = 2 
-				chat.ShowChat()
-			else
-				chat.HideChat()
-			endif
+		if chat and ChatWindowMode = 2 
+			chat.ShowChat()
+			ChatContainsUnread = False
+		else
+			chat.HideChat()
 		endif
 		'====
 
@@ -954,8 +946,8 @@ Type TInGameInterface
 		if ChatWindowMode <> 1 Then GetSpriteFromRegistry("gfx_interface_ingamechat_bg").Draw(800, 600, -1, ALIGN_RIGHT_BOTTOM)
 
 		'arrows
-		GetSpriteFromRegistry("gfx_interface_ingamechat_arrow.up."+GetArrowHighlightMode(540, ChatContainsUnread)).Draw(540, arrowPos)
-		GetSpriteFromRegistry("gfx_interface_ingamechat_arrow.down."+GetArrowHighlightMode(640, ChatContainsUnread)).Draw(720, arrowPos)
+		GetSpriteFromRegistry("gfx_interface_ingamechat_arrow.up."+GetArrowHighlightMode(537, ChatContainsUnread)).Draw(540, arrowPos)
+		GetSpriteFromRegistry("gfx_interface_ingamechat_arrow.down."+GetArrowHighlightMode(717, ChatContainsUnread)).Draw(720, arrowPos)
 
 		'key
 		local lockMode:string = "unlocked"
@@ -985,7 +977,7 @@ Type TInGameInterface
 		Next
 
 		Function GetArrowHighlightMode:String(offset:Int, chatContainsUnread:Int)
-			If THelper.MouseIn(offset, 397, 100, 20)
+			If THelper.MouseIn(offset, 397, 25, 20)
 				return "active"
 			ElseIf chatContainsUnread
 				return "highlight"
