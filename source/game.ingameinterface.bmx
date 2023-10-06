@@ -68,7 +68,7 @@ Type TInGameInterface
 	Field noiseDisplace:TRectangle = new TRectangle
 	Field ChangeNoiseTimer:Float= 0.0
 	Field ShowChannel:Byte 	= 1
-	Field ChatShow:int = False
+	Field ChatWindowMode:Int = 1 '0=Off, 1=TV-Family, 2=Chat, 3=Audience Distribution
 	Field ChatContainsUnread:int = False
 	Field ChatShowHideLocked:int = False
 	Field hoveredMenuButton:int = 0
@@ -93,7 +93,7 @@ Type TInGameInterface
 	Method Init:TInGameInterface()
 		if not chat
 			'TLogger.Log("TGame", "Creating ingame GUIelements", LOG_DEBUG)
-			chat = New TGUIGameChat.Create(New SVec2I(515, 404), New SVec2I(278,180), "InGame")
+			chat = New TGUIGameChat.Create(New SVec2I(515, 420), New SVec2I(278,180), "InGame")
 			'keep the chat entries visible
 			'chat.setDefaultHideEntryTime(10000)
 			chat.setOption(GUI_OBJECT_CLICKABLE, False)
@@ -215,7 +215,7 @@ Type TInGameInterface
 
 		'if user did not lock the current view
 		If not GetInstance().ChatShowHideLocked
-			GetInstance().ChatShow = True
+			GetInstance().ChatWindowMode = 2
 		EndIf
 	End Function
 
@@ -240,9 +240,10 @@ Type TInGameInterface
 
 			'by default hide chat again (as it is empty now)
 			'(except if user did lock the current view)
-			If not ChatShowHideLocked
-				ChatShow = False
-			EndIf
+			'TODO what to show on cleanup
+			'If not ChatShowHideLocked
+			'	ChatShow = False
+			'EndIf
 			
 			ChatContainsUnread = False
 		EndIf
@@ -700,53 +701,40 @@ Type TInGameInterface
 		'=== THINGS DONE REGARDLESS OF PAUSED STATE ===
 
 
+		'TODO implement toggling here
 
 		'=== SHOW / HIDE / LOCK CHAT ===
-		if not ChatShow
 			'arrow area
-			if MouseManager.IsClicked(1) and THelper.MouseIn(540, 397, 200, 20)
+		if MouseManager.IsClicked(1) And THelper.MouseIn(540, 397, 200, 20)
+			'TODO smaller areas for arrows
+			If THelper.MouseIn(540, 397, 100, 20)
+				ChatWindowMode = (ChatWindowMode + 2) Mod 3
+				print ChatWindowMode
+			ElseIf THelper.MouseIn(640, 397, 100, 20)
+				ChatWindowMode = (ChatWindowMode + 1) Mod 3
+				print ChatWindowMode
+			EndIf
+			If ChatWindowMode = 2
 				'reset unread
 				ChatContainsUnread = False
+			EndIf
 
-				ChatShow = True
-				if chat then chat.ShowChat()
+			'handled left click
+			MouseManager.SetClickHandled(1)
+		endif
+		'lock area
+		if MouseManager.IsClicked(1) and THelper.MouseIn(770, 397, 20, 20)
+			ChatShowHideLocked = 1- ChatShowHideLocked
 
-				'handled left click
-				MouseManager.SetClickHandled(1)
-			endif
-			'lock area
-			if MouseManager.IsClicked(1) and THelper.MouseIn(770, 397, 20, 20)
-				ChatShowHideLocked = 1- ChatShowHideLocked
-
-				'handled left click
-				MouseManager.SetClickHandled(1)
-			endif
-		else
-			'arrow area
-			if MouseManager.IsClicked(1) and THelper.MouseIn(540, 583, 200, 17)
-				'reset unread
-				ChatContainsUnread = False
-
-				ChatShow = False
-				if chat then chat.HideChat()
-
-				'handled left click
-				MouseManager.SetClickHandled(1)
-			endif
-			'lock area
-			if MouseManager.IsClicked(1) and THelper.MouseIn(770, 583, 20, 20)
-				ChatShowHideLocked = 1 - ChatShowHideLocked
-
-				'handled left click
-				MouseManager.SetClickHandled(1)
-			endif
+			'handled left click
+			MouseManager.SetClickHandled(1)
 		endif
 
 		if chat and not ChatShowHideLocked
-			if not ChatShow
-				chat.HideChat()
-			else
+			if ChatWindowMode = 2 
 				chat.ShowChat()
+			else
+				chat.HideChat()
 			endif
 		endif
 		'====
@@ -858,7 +846,7 @@ Type TInGameInterface
 		'=== TV-FAMILY ===
 
 		'draw TV-family
-		If programmePlan and GetBroadcastManager().GetCurrentAudience(showChannel) > 0
+		If ChatWindowMode = 1 and programmePlan and GetBroadcastManager().GetCurrentAudience(showChannel) > 0
 			_interfaceTVfamily.Draw(spriteInterfaceAudienceBG, spriteInterfaceAudienceOverlay)
 		EndIf 'showchannel <>0
 
@@ -961,33 +949,21 @@ Type TInGameInterface
 		endif
 
 		'=== DRAW CHAT OVERLAY + ARROWS ===
-		local arrowPos:int = 0
-		local arrowDir:string = ""
-		local arrowMode:string = "default"
-		local lockMode:string = "unlocked"
-		if ChatShowHideLocked then lockMode = "locked"
-		if ChatContainsUnread then arrowMode = "highlight"
+		local arrowPos:int = 397
 
-		if ChatShow
-			GetSpriteFromRegistry("gfx_interface_ingamechat_bg").Draw(800, 600, -1, ALIGN_RIGHT_BOTTOM)
-			arrowPos = 583
-			arrowDir = "up"
-		else
-			arrowPos = 397
-			arrowDir = "down"
-		endif
-
-		if THelper.MouseIn(540, arrowPos, 200, 20)
-			arrowMode = "active"
-		endif
-		if THelper.MouseIn(770, arrowPos, 20, 20)
-			lockMode = "active"
-		endif
+		if ChatWindowMode <> 1 Then GetSpriteFromRegistry("gfx_interface_ingamechat_bg").Draw(800, 600, -1, ALIGN_RIGHT_BOTTOM)
 
 		'arrows
-		GetSpriteFromRegistry("gfx_interface_ingamechat_arrow."+arrowDir+"."+arrowMode).Draw(540, arrowPos)
-		GetSpriteFromRegistry("gfx_interface_ingamechat_arrow."+arrowDir+"."+arrowMode).Draw(720, arrowPos)
+		GetSpriteFromRegistry("gfx_interface_ingamechat_arrow.up."+GetArrowHighlightMode(540, ChatContainsUnread)).Draw(540, arrowPos)
+		GetSpriteFromRegistry("gfx_interface_ingamechat_arrow.down."+GetArrowHighlightMode(640, ChatContainsUnread)).Draw(720, arrowPos)
+
 		'key
+		local lockMode:string = "unlocked"
+		if THelper.MouseIn(770, arrowPos, 20, 20)
+			lockMode = "active"
+		elseif ChatShowHideLocked
+			lockMode = "locked"
+		endif
 		GetSpriteFromRegistry("gfx_interface_ingamechat_key."+lockMode).Draw(770, arrowPos)
 		'===
 
@@ -1007,6 +983,16 @@ Type TInGameInterface
 		For local tip:TTooltip = eachin tooltips
 			If tip.enabled Then tip.Render()
 		Next
+
+		Function GetArrowHighlightMode:String(offset:Int, chatContainsUnread:Int)
+			If THelper.MouseIn(offset, 397, 100, 20)
+				return "active"
+			ElseIf chatContainsUnread
+				return "highlight"
+			Else
+				return "default"
+			EndIf
+		End Function
 	End Method
 End Type
 
