@@ -26,7 +26,6 @@ Type TInGameInterface
 	Field CurrentProgrammeText:String
 	Field CurrentProgrammeToolTip:TTooltip
 	Field CurrentAudienceToolTip:TTooltipAudience
-	Field keepCurrentAudienceToolTipOpen:int = False
 	Field MoneyToolTip:TTooltip
 	Field BettyToolTip:TTooltip
 	Field ChannelImageTooltip:TTooltip
